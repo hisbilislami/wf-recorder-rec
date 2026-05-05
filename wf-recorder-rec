@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+
+set -e
+
+TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")
+TEMP_FILE="/tmp/rec_$TIMESTAMP.mp4"
+OUTPUT_FILE="$HOME/Videos/rec_$TIMESTAMP.mp4"
+
+MODE=${1:-area}
+
+if [ "$MODE" = "full" ]; then
+	GEOM=()
+elif [ "$MODE" = "area" ]; then
+	GEOM=(-g "$(slurp)")
+elif [ "$MODE" = "app" ]; then
+	GEOM=(-g "$(slurp -w)")
+else
+	echo "Unknown mode: $MODE"
+	exit 1
+fi
+
+echo "🎬 Recording..."
+
+wf-recorder "${GEOM[@]}" \
+	-f "$TEMP_FILE" \
+	-c libx264 \
+	-p preset=veryfast \
+	-b 2500k \
+	-r 30
+
+echo "⚙️ Processing video..."
+
+ffmpeg -i "$TEMP_FILE" \
+	-vcodec libx264 \
+	-crf 28 \
+	-preset veryfast \
+	-movflags +faststart \
+	"$OUTPUT_FILE"
+
+rm "$TEMP_FILE"
+
+echo "✅ Saved to: $OUTPUT_FILE"
